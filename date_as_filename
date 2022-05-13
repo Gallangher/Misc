@@ -1,0 +1,1 @@
+$filename = "FileName{0:yyyyMMdd-HHmm}" -f (Get-Date)
