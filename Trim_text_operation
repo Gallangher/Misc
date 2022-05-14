@@ -1,0 +1,41 @@
+Najpierw oblicza na której pozycji jest @
+- wszystko co jest przed @ trafia do zmiennej $alias
+-wszystko co jest za @ - do zmiennej $domain
+ 
+ 
+		 
+		$name = "address@domain.com"
+	 
+		$pos = $name.IndexOf("@")
+		 
+		$alias = $name.Substring(0, $pos)
+		$domain = $name.Substring($pos+1)
+		 
+ 
+ 
+Wówczas secondary SMTP z target robimy używając 
+ 
+		 
+		$c = 'smtp:'+$alias+'@qmm.target'
+		set-mailbox $identity -emailAddresses @{add=$c}
+ 
+J
+
+
+
+
+
+
+				[string]$a = (Get-Mailbox $user).primarysmtpaddress
+				Write-Host $a
+				$b = $a.TrimEnd("Contoso.com")
+				$c = 'smtp:'+$b+'qmm.target'
+				set-mailbox $identity -emailAddresses @{add=$c}
+				
+				Write-Host -foregroundcolor Green "QMM: "$c
+				
+				
+				
+				
+
+
