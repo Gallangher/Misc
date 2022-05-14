@@ -1,0 +1,271 @@
+
+
+
+Write-Host "Your Choice : " -foregroundcolor "red" -backgroundcolor "white"
+Write-Host "Q : Quit"
+Write-Host "1 : Export all disabled users of an OU to a file"
+Write-Host "2 : Assign random password for all DN in input file"
+Write-Host "3 : Search all users give in the input file CN within AD and export result file"
+Write-Host "4 : Enable user + Create bal + Disable user for all DN in file"
+Write-Host "5 : Enable user + Create bal + Primary adress + Disable user for all DN in file"
+Write-Host "6 : Export all users without mail of an OU to a file"
+Write-Host "7 : Assign password for all DN in input file"
+Write-Host "8 : Search all users give in the input file SamAccountname within AD and export result file"
+
+$choice = Read-Host "Please enter your choice :"
+
+switch ($choice) 
+    { 
+
+Q {
+# Quit 
+Write-Host "Exit"
+}
+
+
+1 {
+
+# ************************************************************************
+# Export all disabled users of an OU to a file :
+# ************************************************************************
+	
+
+
+} 
+
+
+2 {
+
+# ************************************************************************
+# Assign random password for all DN in input file
+# ************************************************************************
+	
+$Inputlist = Read-Host "Please enter Input DN CSV filename : "
+Write-Host "Start Reading of Input File:" $Inputlist
+
+$OutFile = ".\batch-createpsw.txt" 
+
+set-content -path $OutFile -value "DN,userPrincipalName,Password"
+$rand = New-Object System.Random
+
+Import-CSV $Inputlist | ForEach-Object -process {
+# write-host " dn:" $_.DN " 
+
+#Generate a new 10 character password with 1 number 1 special char 1 uppercase 8 lowcase
+$NewPassword =""
+$NewPassword = $NewPassword + [char]$rand.next(48,58)
+$NewPassword = $NewPassword + "!"
+$NewPassword = $NewPassword + [char]$rand.next(65,91)
+1..8 | ForEach { $NewPassword = $NewPassword + [char]$rand.next(97,123) }
+
+$ldapobjuser = "LDAP://" + $_.DN
+$objUser=[ADSI]$ldapobjuser
+$objuser.psbase.Invoke("SetPassword",$NewPassword) 
+$objuser.SetInfo()
+
+$wout =  "`""+ $_.DN + "`"" + "," +  $objUser.userPrincipalName  + "," + $NewPassword 
+add-content -path $OutFile -value $wout
+
+}
+Write-Host "End Password assigment, file created : " $OutFile
+} 
+
+
+3 {
+	
+# ************************************************************************
+# Search all users give in the input file , within AD and export result file
+# ************************************************************************
+
+$Inputlist = Read-Host "Please enter Input CN list filename : "
+Write-Host "Input File:" $Inputlist
+
+$OutFile = "c:\Scripts\batch.csv"
+set-content -path $OutFile -value "DN,userPrincipalName"
+
+$OutFileerr = "c:\Scripts\batch-error.txt"
+set-content -path $OutFileerr -value "CN,Error"
+
+Get-Content $Inputlist | Foreach-Object { 
+
+$CNVal = $_ + "*"
+$root = [ADSI]''
+ 	$searcher = new-object System.DirectoryServices.DirectorySearcher($root)
+	$searcher.filter = "(&(objectClass=user)(cn= $CNVal))"
+	$user = $searcher.findall()
+
+	if ($user.count -eq 1)
+      { 
+	$objUser=[ADSI]$user[0].path
+	$wout =  "`""+ $user[0].path.trimstart("LDAP://") + "`"" + "," + $objUser.userPrincipalName 
+	add-content -path $OutFile -value $wout
+      }
+      else
+      { 
+	add-content -path $OutFileerr -value $_",ERROR USER multiple or not exist"    
+	} 
+}
+Write-Host "End : file created : " $OutFile
+Write-Host "End : file created : " $OutFileerr
+}
+
+
+4 {
+
+# ************************************************************************ 
+# Enable user + Create bal + Disable user for all DN in file :
+# ************************************************************************ 
+
+$Inputlist = Read-Host "Please enter Input DN CSV filename : "
+Write-Host "Start Reading of Input File: " $Inputlist
+
+$OutFile = "c:\Atos\batch-createbal.txt"
+set-content -path $OutFile -value "DN,userPrincipalName,Mail"
+
+Import-CSV $Inputlist | ForEach-Object -process {
+# write-host " dn:" $_.DN " 
+
+$ldapobjuser = "LDAP://" + $_.DN
+$objUser=[ADSI]$ldapobjuser
+$objuser.psbase.InvokeSet(“AccountDisabled” ,$False)
+$objuser.SetInfo()
+
+Enable-Mailbox -Identity $_.DN -Database Server\Database
+
+$objuser.psbase.InvokeSet(“AccountDisabled” ,$True)
+$objuser.SetInfo()
+
+$wout =  "`""+ $_.DN + "`"" + "," +  $objUser.userPrincipalName  + "," + $objuser.Mail
+add-content -path $OutFile -value $wout
+}
+Write-Host "End creation Bal, file created : " $OutFile
+} 
+
+
+5 {
+
+# ************************************************************************ 
+# Enable user + Create bal + Primary adress + Disable user for all DN in file :
+# ************************************************************************ 
+
+$Inputlist = Read-Host "Please enter Input DN,Mail CSV filename : "
+Write-Host "Start Reading of Input File: " $Inputlist
+
+$OutFile = "c:\Scripts\batch-createbal.txt"
+set-content -path $OutFile -value "DN,userPrincipalName,Mail"
+
+Import-CSV $Inputlist | ForEach-Object -process {
+# write-host " dn:" $_.DN " 
+
+$ldapobjuser = "LDAP://" + $_.DN
+$objUser=[ADSI]$ldapobjuser
+$objuser.psbase.InvokeSet(“AccountDisabled” ,$False)
+$objuser.SetInfo()
+
+Enable-Mailbox -Identity $_.DN -Database server\Database
+
+Set-Mailbox -Identity $_.DN -EmailAddressPolicyEnabled $false -PrimarySmtpAddress $_.Mail
+
+$objuser.psbase.InvokeSet(“AccountDisabled” ,$True)
+$objuser.SetInfo()
+
+$wout =  "`""+ $_.DN + "`"" + "," +  $objUser.userPrincipalName  + "," + $objuser.Mail
+add-content -path $OutFile -value $wout
+}
+Write-Host "End creation Bal, file created : " $OutFile
+}
+
+6 {
+
+# ************************************************************************
+# Export all users without mail of an OU to a file :
+# ************************************************************************
+	
+$ou = Read-Host "Please enter desired OU (before ,dc=Company,dc=com) for example : ou=users,ou=Office,ou=town"
+$ou = $ou + ",dc=Contoso,dc=com"
+Write-Host "Start Export OU:" $ou
+
+$TempFile = "c:\Scripts\Temp.csv"
+$OutFile = "c:\Scripts\batch.csv"
+
+csvde -f $TempFile -d $ou -p subtree -r "(&(objectClass=user)(!(mailNickname=*)))" -l "userPrincipalName" 
+ 
+clear-content -path $OutFile
+Get-Content $TempFile | Foreach-Object {add-content -path $OutFile -value $_",Mail"}
+
+
+Write-Host "End : File created : " $OutFile
+} 
+
+7 {
+
+# ************************************************************************
+# Assign password for all DN in input file
+# ************************************************************************
+	
+$Inputlist = Read-Host "Please enter Input DN,Password CSV filename : "
+Write-Host "Start Reading of Input File:" $Inputlist
+
+$OutFile = "c:\Scripts\batch-createpsw.txt" 
+
+set-content -path $OutFile -value "DN,userPrincipalName,Password"
+
+Import-CSV $Inputlist | ForEach-Object -process {
+write-host " dn:" $_.DN " Psw : " $_.Password  
+
+$NewPassword=$_.Password 
+$ldapobjuser = "LDAP://" + $_.DN
+$objUser=[ADSI]$ldapobjuser
+$objuser.psbase.Invoke("SetPassword",$NewPassword) 
+$objuser.SetInfo()
+
+$wout =  "`""+ $_.DN + "`"" + "," +  $objUser.userPrincipalName  + "," + $_.Password 
+add-content -path $OutFile -value $wout
+
+}
+Write-Host "End Password assigment, file created : " $OutFile
+} 
+
+8 {
+	
+# ************************************************************************
+# Search all users give in the input file , within AD and export result file
+# ************************************************************************
+
+$Inputlist = Read-Host "Please enter Input sAMAccountName  list filename : "
+Write-Host "Input File:" $Inputlist
+
+$OutFile = "c:\Scripts\batch.csv"
+set-content -path $OutFile -value "DN,userPrincipalName"
+
+$OutFileerr = "c:\Scripts\batch-error.txt"
+set-content -path $OutFileerr -value "CN,Error"
+
+Get-Content $Inputlist | Foreach-Object { 
+
+$CNVal = $_
+$root = [ADSI]''
+ 	$searcher = new-object System.DirectoryServices.DirectorySearcher($root)
+	$searcher.filter = "(&(objectClass=user)(sAMAccountName=$CNVal))"
+	$user = $searcher.findall()
+
+	if ($user.count -eq 1)
+      { 
+	$objUser=[ADSI]$user[0].path
+	$wout =  "`""+ $user[0].path.trimstart("LDAP://") + "`"" + "," + $objUser.userPrincipalName 
+	add-content -path $OutFile -value $wout
+      }
+      else
+      { 
+	add-content -path $OutFileerr -value $_",ERROR USER multiple or not exist"    
+	} 
+}
+Write-Host "End : file created : " $OutFile
+Write-Host "End : file created : " $OutFileerr
+}
+
+
+
+# ************************************************************************
+default {Write-Host "Invalid Choice"}
+}
