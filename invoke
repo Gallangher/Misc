@@ -1,0 +1,8 @@
+$servers = “host1″,”host2,”host3”
+
+$credential = Get-Credential -Credential contoso\gallangher
+
+Invoke-Command -ComputerName $servers -Credential $credential -ScriptBlock {
+New-Item -Path HKCU:\Software -Name hsg -Value “scripted default value”
+
+}
