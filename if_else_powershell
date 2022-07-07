@@ -1,0 +1,39 @@
+$status = $timesync.enabled
+
+$false is postentially confusing, and as redundant as testing for $true. Instead of this:
+
+if ($status -eq $False) {write-host "time service disabled"}
+Else {write-host "time is enabled"}
+
+
+I would recommend this:
+
+if ($status) {
+   write-host "time is enabled"
+} Else {
+   write-host "time service disabled"
+}
+
+
+If the flow of control is such that it would be more logical for the "false" code block to appear first, I'd change it to this:
+
+if (-not $status) {
+   write-host "time service disabled"
+} Else {
+   write-host "time is enabled"
+}
+
+##########################################################33
+
+
+
+param(
+[Parameter(Mandatory=$true)][string]$mbx = ''
+)
+$type = (Get-Mailbox $mbx).RecipientTypeDetails
+
+
+if ($type -eq "SharedMailbox") {   write-host "Shared Mailbox" } 
+ElseIf($type -eq "RoomMailbox")  {   write-host "Conference Room" }
+ElseIf ($type -eq "equipmentMailbox") {   write-host "Equipment Mailbox" }
+Else {    write-host "UserMailbox"}
