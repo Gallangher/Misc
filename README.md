@@ -12,3 +12,9 @@ https://github.com/Gallangher/Misc/blob/main/logo%20-%20GIT.jpg
 | Jan        | 32         | Warszawa             |
 | Anna       | 28         | Kraków               |
 | Marek      | 45         | Poznań               |
+
+
+|pytanie|
+|---------|
+|q1|
+|q2|
