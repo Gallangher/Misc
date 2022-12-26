@@ -1,11 +1,10 @@
 # Misc
 one-liner
 
-![Zdjęcie kotka](/logo%20-%20GIT.jpg)
+![Git-solution LOGO](/logo%20-%20GIT.jpg)
 
 
-![Alt text](logo%20-%20GIT.jpg?raw=true "Logo"
-4
+
 
 | Imię       | Wiek       | Miejsce zamieszkania  |
 |------------|------------|-----------------------|
